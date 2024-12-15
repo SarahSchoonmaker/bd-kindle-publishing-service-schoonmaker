@@ -1,8 +1,5 @@
 package com.amazon.ata.test.reflect;
 
-import com.amazon.ata.test.reflect.ConstructorQuery;
-import com.amazon.ata.test.reflect.MethodInvoker;
-import com.amazon.ata.test.reflect.MethodQuery;
 import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

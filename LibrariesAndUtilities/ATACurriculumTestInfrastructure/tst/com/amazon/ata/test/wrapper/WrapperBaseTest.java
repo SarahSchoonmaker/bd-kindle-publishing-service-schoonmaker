@@ -1,6 +1,7 @@
 package com.amazon.ata.test.wrapper;
 
-import com.amazon.ata.test.wrapper.WrapperBase;
+import com.amazon.ata.test.reflect.MethodQuery;
+
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 

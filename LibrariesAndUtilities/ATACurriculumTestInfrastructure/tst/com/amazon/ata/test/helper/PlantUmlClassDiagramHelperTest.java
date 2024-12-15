@@ -1,6 +1,5 @@
 package com.amazon.ata.test.helper;
 
-import com.amazon.ata.test.helper.PlantUmlClassDiagramHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;

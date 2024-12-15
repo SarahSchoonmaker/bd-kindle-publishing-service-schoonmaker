@@ -1,6 +1,5 @@
 package com.amazon.ata.test.junit;
 
-import com.amazon.ata.test.junit.ATATestSuiteRunner;
 import com.amazon.ata.test.types.ATATestResult;
 import com.amazon.ata.test.types.ATATestSuiteId;
 import com.amazon.ata.test.types.ATATestSuiteReport;

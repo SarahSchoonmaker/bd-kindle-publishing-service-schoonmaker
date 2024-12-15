@@ -1,6 +1,5 @@
 package com.amazon.ata.test.tct;
 
-import com.amazon.ata.test.tct.TctResultExceptionIterator;
 import org.junit.jupiter.api.Test;
 
 import java.io.FileNotFoundException;

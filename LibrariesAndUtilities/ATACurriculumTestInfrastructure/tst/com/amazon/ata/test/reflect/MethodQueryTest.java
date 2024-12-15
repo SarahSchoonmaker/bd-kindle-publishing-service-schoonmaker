@@ -1,8 +1,5 @@
 package com.amazon.ata.test.reflect;
 
-import com.amazon.ata.test.reflect.MethodQuery;
-import com.amazon.ata.test.reflect.MultipleMethodsFoundException;
-import com.amazon.ata.test.reflect.NoMethodFoundException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.Nested;

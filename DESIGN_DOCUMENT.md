@@ -1,371 +1,302 @@
-## Unit 3 Project Design Document
+# Unit 6 Project Design Doc
 
-### Background
+## Background
 
-[Amazon Music Unlimited](https://www.amazon.com/b?ie=UTF8&node=15730321011)
-is a premium music subscription service featuring tens of millions of songs
-available to our millions of customers. We currently provide expert curated,
-premade playlists, but customers have often requested the ability to create
-and manage their own custom playlists.
+The Amazon Kindle store provides millions of ebooks to our customers. The process of publishing an
+ebook to the Kindle catalog is currently an extremely manual process, which causes a long wait time
+to add a book to the catalog.
 
-This design document describes the Amazon Music Playlist Service, a new
-AWS service that will provide the custom playlist functionality
-to meet our customers’ needs. It is designed to interact with the Amazon
-Music client and will return a list of song metadata associated with the
-playlist that the Amazon Music client can use to fetch the song file when
-playing.
+This design document describes the Amazon Kindle Publishing Service, a new, native AWS service
+that will provide the ability to publish books to the Kindle catalog, access published Kindle books
+in the catalog, and remove published Kindle books from the catalog.
 
-This initial iteration will provide the minimum lovable product (MLP) defined
-by our product team including creating, retrieving, and updating a playlist,
-as well as adding to and retrieving a saved playlist’s list of songs.
+This initial iteration will provide the minimum lovable product (MLP) defined by our product team.
 
-### Glossary
+## Glossary
 
-* **Playlist** - Represents a customer’s playlist, an ordered collection of
-  songs. Customers are able to give it a custom name. See Data Model for more
-  information
-* **Song/Song Metadata/Album Track** - We will use our sister team’s album
-  information to represent song metadata. Represented as an ASIN that maps
-  to the specific album, and a track number for a specific song on the album.
-  See Data Model for more information
-* **Tag** - User defined tags associated with a playlist for them to easily
-  categorize the playlist. The tags will be used by another Amazon Music team
-  to allow searching for playlists as well as searching for songs
-* **ASIN** - Amazon Standard Identification Number*, *unique identifier for
-  an amazon product, in this case a music album
-* **DDB** - DynamoDB. An AWS service providing a database to save and load
-  data to
-* **MLP** - Minimum Lovable Product. The minimum set of features in our
-  product to provide for customers to ensure they love our product
-* **Customer ID** - unique identifier for a customer’s amazon account
-* **Amazon Music Client** - Amazon Music’s client which the user interacts
-  with to retrieve playlist data and play music
+**Book** - A Kindle ebook that can be purchased by customers on the retail website.
 
-### Business Requirements
+**Catalog** - the entire set of Kindle ebooks at Amazon.
 
-* As a customer, I want to create a new, empty playlist with a given name and
-  a list  of tags.
-* As a customer, I want to retrieve my playlist with a given ID.
-* As a customer, I want to update my playlist name.
-* As a customer, I want to add a song to the end of my playlist.
-* As a customer, I want to add a song to the beginning of my playlist.
-* As a customer, I want to retrieve all songs in my playlist, in a provided
-  order (in order, reverse order, shuffled).
+**Version** - A way to track changes to a Kindle ebook. Each time an update is made to the ebook,
+a new version is made available to customers.
 
-### Architecture
+**Recommendation** - A recommended book for customers to purchase.
 
-![Music Playlist Service Architecture](src/resources/documentation/MusicPlaylistServiceArchitecture.png)
+**MLP** - Minimum Lovable Product. The minimum set of features in our product to provide for
+customers to ensure they love our product.
 
-### Music Playlist Service API Implementation Notes
+## Business Requirements
 
-#### General
+* As a user, I want to retrieve a book from the Kindle catalog.
+* As a user, I want to retrieve recommendations related to a book in the Kindle catalog.
+* As a user, I want to submit my book for publication into the Kindle catalog.
+* As a user, I want to see the current status of my book publishing submission.
+* As a user, I want to remove my book from the Kindle catalog.
 
-* We’ve created a starter service package with a basic implementation of the
-  Get Playlists endpoint.
-    * We’ve implemented a simple dependency management strategy with our
-      `App` class, but we want to refactor it to use the
-      [Dagger framework](https://dagger.dev/users-guide) so we no longer
-      have to hand manage it.
-* The client calling our service will be the Amazon Music Client, used in
-  Amazon Music’s various products such as the website, mobile apps, or Alexa
-  integration.
-* The Amazon Music Client is responsible for logging the user in and passing
-  the customer ID when calling the Music Playlist Service.
-* Our team has also provided a `MusicPlaylistServiceUtils` class available
-  that can help with validation and generating playlist IDs. It exposes the
-  below methods:
-    * `boolean isStringValid(String playlistName)`
-    * `String generatePlaylistId()`
-* There are 3 initial custom exceptions created for the Music Playlist
-  service that can be thrown (as noted below):
-    * `PlaylistNotFoundException`
-    * `InvalidAttributeValueExcpetion`
-    * `AlbumTrackNotFoundException`
+## Architecture
 
-Below are the endpoints required to provide the MLP business requirements
+![Figure 1](src/resources/KindlePublishingServiceArchitecture.png)
 
-#### Get Playlist Endpoint
+*Figure 1: Diagram showing the architecture of the Kindle Publishing Service. A user connects to an
+Amazon Kindle Publishing Client. The Client makes API calls to the Kindle Publishing Service first connecting
+with an AWS load balancer. This forwards the requests to ECS, which connects to a persistent data store for catalog
+and publishing information Responses then flow bck to the Kindle Publishing Client.*
 
-* Accepts `GET` requests to `/playlists/:id`
-* Accepts a playlist ID to return the corresponding playlist for.
-* If the given playlist ID is not found, will throw a `PlaylistNotFoundException`
+## Kindle Publishing Service API Implementation Notes
 
-#### Create Playlist Endpoint
+### General
 
-* Accepts `POST` requests to `/playlists`
-* Accepts data to create a new playlist with a provided name, a given customer
-  ID, and an optional list of tags. Returns the new playlist, including a
-  unique playlist ID assigned by the Music Playlist Service.
-* We have a utility class with a validation method, and a method to generate
-  a new, unique playlist ID.
-* For security concerns, we will validate that the provided customer ID and
-  playlist name do not contain any invalid characters: `" ' \ `
-* If the customer ID or playlist name contains any of the invalid characters,
-  will throw an `InvalidAttributeValueException`.
-* This API *must* create the playlist with an empty list so we can later add
-  songs to it through the subsequent APIs.
-* We do not want to unnecessarily store duplicate tags, so we will choose a
-  data structure that can provide us this behavior.
-* The music playlist client will provide a non-empty list of tags or `null`
-  in the request to indicate no tags were provided.
-* Note: Unlike the playlist name, tags do not have any character restrictions.
+* We’ve created a starter service package with an implementation of the `GetBook` operation. This
+comes along with a `CatalogDao` that communicates with the `CatalogItemVersions` table, as well as
+a `RecommendationServiceClient` that communicates with the `RecommendationService`.
+* We’ve provided a `PublishingStatusDao` class with some methods that you’ll use to set the
+publishing status of a book publish request. We’ve also provided a DynamoDB model
+`PublishingStatusItem` which is used by `PublishingStatusDao`.
+* Our team has also provided a `KindlePublishingUtils` class that helps with generating `bookIds`,
+`publishingRecordIds`, and a publishing status message. It exposes the below methods:
+    * `String generateBookId()`
+    * `String generatePublishingRecordId()`
+    * `String generatePublishingStatusMessage(PublishingRecordStatus status)`
+* There is one initial custom exceptions created for the Kindle Publishing service that can be
+thrown (as noted below):
+    * `BookNotFoundException`
 
-#### Update Playlist Endpoint
+Below are the endpoints required to provide the MLP business requirements.
 
-* Accepts `PUT` requests to `/playlists/:id`
-* Accepts data to update a playlist including a playlist ID, an updated
-  playlist name, and the customer ID associated with the playlist. Returns
-  the updated playlist.
-* If the playlist ID is not found, will throw a `PlaylistNotFoundException`
-* For now, only supports updating the playlist name. Don't modify any of
-  the other attributes.
-* For security concerns, we will validate that the provided customer ID and
-  playlist name do not contain any invalid characters: `" ' \ `
-* If the customer ID or playlist name contains any of the invalid characters,
-  will throw an `InvalidAttributeValueException`.
-* Note: We will not allow tags to be updated. The Music Search team using the
-  tags are not ready to support updating them. If needed, this functionality
-  can be added after launch.
+### Kindle Catalog Versioning
 
-#### Add Song To Playlist Endpoint
+When a book in the Kindle catalog needs to be updated we will not update the book in place. We want
+to preserve all of the previous versions of the book that was in our catalog. To support this, we
+have a DynamoDB table `CatalogItemVersions` which has the version number as the sort key and
+includes a boolean field `inactive` to indicate whether this book is the latest active version of
+the book. When we add a brand new book into the Kindle catalog, it is added into
+`CatalogItemVersions` with version 1 and `inactive = false`. When we update that same book, it will
+be added as a new item in `CatalogItemVersions` with version 2 and `inactive = false`, and version 1
+item would be marked with `inactive = true`.
 
-* Accepts `POST` requests to `/playlists/:id/songs`
-* Accepts a playlist ID and a song to be added. The song is specified by the
-  album’s ASIN and song track number
-    * By default, will insert the new song to the end of the playlist
-    * If the optional `queueNext` parameter is provided and is `true`, this
-      API will insert the new song to the front of the playlist so that it
-      will be the next song played
-* If the playlist is not found, will throw a `PlaylistNotFoundException`
-* If the given album ASIN doesn’t exist, or if the given track number does
-  not exist for the album ASIN, will throw an `AlbumTrackNotFoundException`
+### `GetBook`
 
-#### Get Playlist Songs Endpoint
+* Retrieves the latest active version of a book from the catalog with a given book id.
+* Returns a list of book recommendations related to the book. These are retrieved from the
+`RecommendationService`.
+* Returns book only if the book is currently active (based on the `inactive` field in
+`CatalogItemVersions` table).
+* Throws a `BookNotFoundException` when given book id is not found or the corresponding book is
+not active in the catalog.
+* We have configured the API to require a non-empty book id in the request, otherwise a `ValidationException`
+will be thrown. You do not have to account for this.
 
-* Accepts `GET` requests to `/playlists/:id/songs`
-* Retrieves all songs of a playlist with the given playlist ID
-    * Returns the song list in default playlist order
-    * If the optional `order` parameter is provided, this API will return the
-      song list in order, reverse order, or shuffled order, based on the value
-      of `order`
-        * DEFAULT - same as default behavior, returns songs in playlist order
-        * REVERSED - returns playlist songs in reversed order
-        * SHUFFLED - returns playlist songs in a randomized order
-* If the playlist ID is found, but contains no songs, the songs list will be
-  empty
-* If the playlist ID is not found, will throw a `PlaylistNotFoundException`
-
-#### Data
-
-* We have worked with our sister team to import a number of albums into a local
-  table called `album_tracks` in order to start development.
-* We have created two Java models to represent an item in the playlists and
-  `album_tracks` tables
-    *  `Playlist.java`
-    *  `AlbumTrack.java`
-* For simpler song list retrieval, we will store the list of songs directly
-  in the playlists table, representing it in the Java model as a
-  `List<AlbumTrack>`. This is known as
-  [denormalizing data](https://en.wikipedia.org/wiki/Denormalization).
-    * This meets our needs, but does have limitations. Based on the maximum
-      size of an item in DynamoDB, we’ve calculated this allows us to store
-      about 2500 songs in a single playlist, above the projected playlist size
-      that customers will need in this phase, at the cost of having to store
-      large items as we scale.
-    * A forward-thinking approach is create a separate table in which each song
-      in a playlist is represented by a distinct item in the table (which
-      contains the playlist ID and song identifiers). This removes the
-      limitation of songs in a playlist, but consumes more data (and thus cost)
-      and includes more complexity to retrieve the playlist’s songs. We may
-      migrate our data to this model in the future when we’re more certain of
-      customer needs.
-
-### Data Model
-
-This section maps the attributes of our tables, with the corresponding DDB type.
-
-```markdown
-    playlists
-  
-    id // partition key, string
-    name // string
-    customerId // string
-    songCount // number
-    tags // stringSet
-    songList // list
 ```
-
-```markdown
-    album_tracks
-    asin // partition key, string
-    track_number // sort key, number
-    album_name // string
-    song_title // string
-```
-
-Our sister team providing the song data has a different attribute naming format.
-We will have to account for this in our Java models when interacting with the
-copy of their table.
-
-### Class Diagram
-
-![Music Playlist Service class diagram](src/resources/documentation/mastery-task2-music-playlist-CD.png)
-
-[Link to class diagram PUML file](src/resources/mastery-task1-music-playlist-CD.puml)
-
-##### Get Playlist:
-
-###### GetPlaylistRequest:
-```json
-{
-  "id" : "PPT03"
-}
-```
-Note: id is a path parameter. e.g. `/playlists/PPT03`
-
-###### GetPlaylistResult:
-
-```json
-{
-  "id" : "PPT03",
-  "name" : "PPT03 playlist",
-  "customerId" : "1",
-  "songCount" : 0,
-  "tags" : null
+GetBookRequest {
+    "bookId": "book.69c16130-60b5-485a-8326-7f79d3feb36d"
 }
 ```
 
-##### Create Playlist:
-
-###### CreatePlaylistRequest:
-
-```json
-{
-  "name" : "new playlist",
-  "customerId" : "1",
-  "tags" : ["new tag"]
+```
+GetBookResponse {
+    "book": {
+        "author": "Maurice Sendak",
+        "bookId": "book.69c16130-60b5-485a-8326-7f79d3feb36e",
+        "genre": "FANTASY",
+        "text": "The night wore his wolf suit...",
+        "title": "Where the Wild Things Are",
+        "version": 1
+    },
+    "recommendations":
+     [
+        {"asin": "B07XZDZWG3",
+         "author": "Eric J. Vann",
+         "title": "Soul Weaver (The Seeded Realms Book 1)"},
+        {"asin": "B00PQRJJY0",
+         "author": "Morgan Rice",
+         "title": "Rise of the Dragons (Kings and Sorcerers--Book 1)"},
+        {"asin": "0316438979",
+         "author": "Andrzej Sapkowski",
+         "title": "The Witcher Boxed Set: Blood of Elves, The Time of Contempt, Baptism of Fire"}
+     ]
 }
 ```
 
-###### CreatePlaylistResult:
+### `RemoveBookFromCatalog`
 
-```json
-{
-  "id" : "isdD3",
-  "name" : "new playlist",
-  "customerId" : "1",
-  "songCount" : 0,
-  "tags" : ["new tag"]
+* Removes a book from the catalog with a given book id.
+* This deactivates the latest version of the book in the `CatalogItemVersions` table by changing
+its `inactive` attribute to `true`.
+* After a successful call to `RemoveBookFromCatalog` for a book id, the `GetBook` call for the
+same book id should throw a `BookNotFoundException`
+* Throws a `BookNotFoundException` when given book id is not found or the corresponding book is
+not active in the catalog.
+* We have configured the API to require a non-empty book id in the request, otherwise a `ValidationException`
+will be thrown. You do not have to account for this.
+```
+RemoveBookFromCatalogRequest {
+    bookId: "book.69c16130-60b5-485a-8326-7f79d3feb36d"
 }
 ```
 
-##### Update Playlist:
-
-###### UpdatePlaylistRequest:
-
-```json
-{
-  "id" : "PPT03",
-  "name" : "Updated PPT03 playlist",
-  "customerId" : "1"
-}
 ```
-Note: id is a path parameter. e.g. `/playlists/PPT03`
-
-###### UpdatePlaylistResult:
-
-```json
-{
-  "id" : "PPT03",
-  "name" : "Updated PPT03 playlist",
-  "customerId" : "1",
-  "songCount" : 0,
-  "tags" : ["PPT03"]
+RemoveBookFromCatalogResponse {
+    // Empty response object created for flexibility so that we can easily return
+    // data in the future.
 }
 ```
 
-##### Add Song to Playlist:
+### `SubmitBookForPublishing`
 
-###### AddSongToPlaylistRequest:
+* Accepts book assets and submits book for processing.
+* To update an existing book, the request must contain the book’s associated `bookId`.
+    * If a `bookId` is passed, we will validate that the book exists in the catalog. If no active or
+        inactive book is found with the provided `bookId` is found, we throw a `BookNotFoundException`
+    * (The previous version of the book will be marked inactive as part of the asynchronous
+      publishing logic)
+* If a `bookId` is not present in the request, then the submission will be considered for a new
+    book, and a new `bookId` will be generated when the book is published.
+* Inserts a book publishing request into the `BookPublishRequestManager` for asynchronous processing.
+* Adds a record into the `PublishingStatus` table with publishing state `QUEUED`.
+* Returns a generated `publishingRecordId` associated with the submission. This `publishingRecordId`
+    is used to call `GetPublishingStatus` to get all of the publishing status information on the
+    publish request.
+* If the book submission is missing the `title`, `author`, `language`, `genre`, or `text`, a
+    `ValidationException` will be thrown.
+a `ValidationException` will be thrown. You do not have to account for this.
 
-```json
-{
-  "id" : "PPT03",
-  "asin" : "B019HKJTCI",
-  "trackNumber" : 6,
-  "queueNext" : false
-}
 ```
-Note: id is a path parameter and queueNext is a query parameter. e.g.
-`/playlists/PPT03/songs?queueNext=true`
-
-###### AddSongToPlaylistResult:
-
-```json
-[
-  {
-    "asin" : "B019HKJTCI",
-    "trackNumber" : 6,
-    "albumName" : "Dark Side of the Moon",
-    "songTitle": "Money"
-  }
-]
-```
-
-##### Get Playlist Songs:
-
-###### GetPlaylistSongsRequest:
-
-```json
-{
-  "id" : "PPT03",
-  "order" : "DEFAULT"
+SubmitBookForPublishingRequest {
+    "bookId": "book.b3750190-2a30-4ca8-ae1b-73d0d202dc41",
+    "title": "Run Fast. Cook Fast. Eat Slow.: Quick-Fix Recipes for Hangry Athletes: A Cookbook",
+    "author": "Shalane Flanagan",
+    "text": "When I moved off the track, from racing 5,000 m and 10,000 m distances to the marathon, my training required... ",
+    "genre": "COOKING"
 }
 ```
 
-Note: `id` is a path parameter and `order` is a query parameter. e.g.
-`/playlists/PPT03/songs?order=DEFAULT`
-
-###### GetPlaylistSongsResult:
-
-```json
-[
-  {
-    "asin" : "B019HKJTCI",
-    "trackNumber" : 6,
-    "albumName" : "Dark Side of the Moon",
-    "songTitle": "Money"
-  }
-]
 ```
-### API Sequence Diagrams
+SubmitBookForPublishingResponse {
+    publishingRecordId: "publishingStatus.69c16130-60b5-485a-8326-7f79d3feb36d"
+}
+```
 
-#### Get Playlist:
+### `GetPublishingStatus`
 
-![Get Playlist sequence diagram](src/resources/documentation/mastery-task1-get-playlist-SD.png)
+* Accepts a `publishingRecordId` and returns the publishing status history of the book submission
+    from the `PublishingStatus` table.
+* A successful publishing request should start in the `QUEUED` state, transition to `IN_PROGRESS`,
+    and end in `SUCCESSFUL`.
+* A failed publishing request should start in the `QUEUED` state, transition to `IN_PROGRESS`, and
+    end in `FAILED`.
+    * The status message of a failed publishing request should contain details about the failure.
+* When a `SUCCESSFUL` `PublishingStatus` has been reached, the `PublishingStatusRecord` should
+    contain a `bookId`. If the publishing request was for an existing book, each
+    `PublishingStatusRecord` will have a `bookId`.
+* Throws a `PublishingRecordFoundException` when the provided `publishingRecordId` is not found in
+    the `PublishingStatus` table.
+* We have configured the API to require a non-empty publishing record ID in the request, otherwise  a
+`ValidationException` will be thrown. You do not have to account for this.
 
-[Link to get playlist sequence diagram PUML file](src/resources/mastery-task1-get-playlist-SD.puml)
+```
+GetPublishingStatusRequest {
+    publishingRecordId: "publishingstatus.827a06ef-04ae-4754-995a-53ad4dc503b3"
+}
+```
 
-#### Create Playlist:
+```
+GetPublishingStatusResponse {
+    "publishingStatusHistory":
+    [
+        {"status": "IN_PROGRESS",
+        "statusMessage": "Processing started at 2020-02-25 15:17:09.213"},
+        {"status": "QUEUED",
+        "statusMessage": "Queued for publishing at 2020-02-25 15:17:08.929"},
+        {"bookId": "book.b3750190-2a30-4ca8-ae1b-73d0d202dc41",
+        "status": "SUCCESSFUL",
+        "statusMessage": "Book published at 2020-02-25 15:17:09.551"}
+    ]
+}
+```
 
-![Create Playlist sequence diagram](src/resources/documentation/mastery-task1-create-playlist-SD.png)
+## Data Model
 
-[Link to create playlist sequence diagram PUML file](src/resources/mastery-task1-create-playlist-SD.puml)
+We will have two DynamoDB tables to support our service:
 
-#### Update Playlist:
+* **PublishingStatus**: Stores the current state and messaging of book submissions. States could
+    include `QUEUED`, `IN_PROGRESS`, `SUCCESSFUL`, `FAILED`.
+* **CatalogItemVersions**: Stores data about the books in the Kindle catalog. If an existing book
+    is updated, then a new entry in the table is added with an updated version number. The previous
+    version will be inactive.
 
-![Update Playlist Sequence Diagram](src/resources/documentation/UpdatePlaylistActivity.png)
+Below are the data models for the DynamoDB tables.
 
-[source](src/resources/documentation/UpdatePlaylistActivity.puml)
+### Publishing Status
 
-#### Add Song To Playlist:
+* `publishingRecordId` (string, partition key)
+* `status` (string, sort key)
+* `statusMessage` (string)
+* `bookId` (string)
 
-![Add Song To Playlist Sequence Diagram](src/resources/documentation/AddSongToPlaylistActivity.png)
+### CatalogItemVersions
 
-[source](src/resources/documentation/AddSongToPlaylistActivity.puml)
+* `bookId` (string, partition key)
+* `version` (number, sort key)
+* `title` (string)
+* `author` (string)
+* `text` (string)
+* `genre` (string)
+* `inactive` (boolean)
 
-#### Get Playlist Songs:
 
-![Get Playlist Songs Sequence Diagram](src/resources/documentation/GetPlaylistSongsActivity.png)
 
-[source](src/resources/documentation/GetPlaylistSongsActivity.puml)
+## Class Diagram
+
+<**MT01.MILESTONE 1**>
+
+![Link to class diagram PUML file](src/resources/mastery-task1-kindle-publishing-CD.puml)
+
+
+## API Sequence Diagrams
+
+### GetBook
+
+![Sequence diagram for getBook API](src/resources/getBook.png)
+
+### RemoveBookFromCatalog
+
+<**MT01.MILESTONE 1**>
+
+![Link to sequence diagram PUML file](src/resources/mastery-task1-remove-book-SD.puml)
+
+### SubmitBookForPublishing
+**Update (03/11/19)**: the two original `setPublishingStatus` methods in the `PublishingStatusDao`
+have been deprecated. If your MT02 is already using these. It is OK. Do not add any additional
+calls to these methods.
+
+![Sequence diagram for submitBook API](src/resources/submitBook.png)
+
+### GetPublishingStatus
+
+![Sequence diagram for getPublishingStatus API](src/resources/getPublishingStatus.png)
+
+## Asynchronous Book Publishing
+
+When the App starts up, we make a call to start our `BookPublisher`. This schedules a
+`Runnable` to execute repeatedly while the service runs.
+
+We will have this `Runnable` retrieve a book publish request from `BookPublishRequestManager` and
+perform the steps required for publishing a Kindle book into the catalog. For each
+`BookPublishRequest` in the queue, the following steps are performed:
+
+1. Adds an entry to the Publishing Status table with state `IN_PROGRESS`
+2. Performs formatting and conversion of the book
+3. Adds the new book to the `CatalogItemVersion` table
+    1. If this request is updating an existing book:
+        1. The entry in `CatalogItemVersion` will use the same `bookId` but with the
+           version incremented by 1.
+        1. The previously active version of the book will be marked inactive.
+    2. Otherwise, a new `bookId` is generated for the book and the book will be stored in
+        `CatalogItemVersion` as version 1.
+4. Adds an item to the Publishing Status table with state `SUCCESSFUL` if all the processing steps
+    succeed. If an exception is caught while processing, adds an item into the Publishing Status
+    table with state `FAILED` and includes the exception message.
+
+![Sequence diagram for Asynchronous Book Processing](src/resources/processing.png)
+

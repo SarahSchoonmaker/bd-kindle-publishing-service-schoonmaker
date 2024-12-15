@@ -1,6 +1,5 @@
 package com.amazon.ata.test.assertions;
 
-import com.amazon.ata.test.assertions.PlantUmlClassDiagramAssertions;
 import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

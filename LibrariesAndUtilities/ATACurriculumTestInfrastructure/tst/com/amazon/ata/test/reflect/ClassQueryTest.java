@@ -1,8 +1,5 @@
 package com.amazon.ata.test.reflect;
 
-import com.amazon.ata.test.reflect.ClassQuery;
-import com.amazon.ata.test.reflect.MultipleClassesFoundException;
-import com.amazon.ata.test.reflect.NoClassFoundException;
 import com.amazon.ata.test.reflect.testpackage.AnotherClassInTestPackage;
 import com.amazon.ata.test.reflect.testpackage.ClassInTestPackage;
 import com.amazon.ata.test.reflect.testpackage.ExceptionInTestPackage;

@@ -1,7 +1,5 @@
 package com.amazon.ata.test.helper;
 
-import com.amazon.ata.test.helper.PlantUmlSequenceDiagramHelper;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -19,7 +17,7 @@ class PlantUmlSequenceDiagramHelperTest {
         String matchingClass = "Automobile";
 
         // WHEN + THEN -- returns true
-        Assertions.assertTrue(PlantUmlSequenceDiagramHelper.sequenceDiagramContains(
+        assertTrue(PlantUmlSequenceDiagramHelper.sequenceDiagramContains(
                 "Automobile --> Engine", matchingClass));
     }
 

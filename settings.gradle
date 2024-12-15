@@ -7,8 +7,8 @@
  * in the user manual at https://docs.gradle.org/7.0.2/userguide/multi_project_builds.html
  */
 
-rootProject.name = 'UnitProject'
+rootProject.name = 'KindlePublishingService'
 include 'LibrariesAndUtilities:LessonPlanResources'
-include 'LibrariesAndUtilities:ATACurriculumTctIntrospection'
+include 'LibrariesAndUtilities:ATACurriculum_JavaProjectResources'
+include 'LibrariesAndUtilities:ATACurriculum_RecommendationsService'
 include 'LibrariesAndUtilities:ATACurriculumTestInfrastructure'
-include 'LibrariesAndUtilities:ATAIntegrationTestInfrastructure'

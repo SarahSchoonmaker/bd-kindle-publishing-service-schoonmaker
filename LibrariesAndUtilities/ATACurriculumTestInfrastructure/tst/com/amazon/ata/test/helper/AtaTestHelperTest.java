@@ -1,6 +1,5 @@
 package com.amazon.ata.test.helper;
 
-import com.amazon.ata.test.helper.AtaTestHelper;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 
