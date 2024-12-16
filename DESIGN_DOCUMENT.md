@@ -250,7 +250,7 @@ Below are the data models for the DynamoDB tables.
 
 <**MT01.MILESTONE 1**>
 
-![Link to class diagram PUML file](src/resources/mastery-task1-kindle-publishing-CD.puml)
+[Link to class diagram PUML file](src/resources/mastery-task1-kindle-publishing-CD.puml)
 
 
 ## API Sequence Diagrams
@@ -263,7 +263,7 @@ Below are the data models for the DynamoDB tables.
 
 <**MT01.MILESTONE 1**>
 
-![Link to sequence diagram PUML file](src/resources/mastery-task1-remove-book-SD.puml)
+[Link to sequence diagram PUML file](src/resources/mastery-task1-remove-book-SD.puml)
 
 ### SubmitBookForPublishing
 **Update (03/11/19)**: the two original `setPublishingStatus` methods in the `PublishingStatusDao`

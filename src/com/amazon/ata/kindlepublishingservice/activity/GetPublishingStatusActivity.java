@@ -1,5 +1,6 @@
 package com.amazon.ata.kindlepublishingservice.activity;
 
+import com.amazon.ata.kindlepublishingservice.converters.BookPublishRequestConverter;
 import com.amazon.ata.kindlepublishingservice.dao.PublishingStatusDao;
 import com.amazon.ata.kindlepublishingservice.dynamodb.models.PublishingStatusItem;
 import com.amazon.ata.kindlepublishingservice.models.PublishingStatusRecord;
@@ -12,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GetPublishingStatusActivity {
-    private PublishingStatusDao publishingStatusDao;
+    PublishingStatusDao publishingStatusDao;
 
     @Inject
     public GetPublishingStatusActivity(PublishingStatusDao publishingStatusDao) {
@@ -20,21 +21,17 @@ public class GetPublishingStatusActivity {
     }
 
     public GetPublishingStatusResponse execute(GetPublishingStatusRequest publishingStatusRequest) {
-        // retrieve the list of items
-        List<PublishingStatusItem> itemList = publishingStatusDao.getPublishingStatuses(publishingStatusRequest.getPublishingRecordId());
+        String id = publishingStatusRequest.getPublishingRecordId();
 
-        List<PublishingStatusRecord> statusHistory = new ArrayList<PublishingStatusRecord>();
+        List<PublishingStatusItem> list = publishingStatusDao.getPublishingStatus(id);
+        List<PublishingStatusRecord> r = new ArrayList<>();
 
-        for (PublishingStatusItem item: itemList) {
-            statusHistory.add(PublishingStatusRecord.builder()
-                    .withStatus(item.getStatus().toString())
-                    .withStatusMessage(item.getStatusMessage())
-                    .withBookId(item.getBookId())
-                    .build());
+        for (PublishingStatusItem item : list) {
+            r.add(BookPublishRequestConverter.toPublishingStatusRecord(item));
         }
 
         return GetPublishingStatusResponse.builder()
-                .withPublishingStatusHistory(statusHistory)
+                .withPublishingStatusHistory(r)
                 .build();
     }
 }

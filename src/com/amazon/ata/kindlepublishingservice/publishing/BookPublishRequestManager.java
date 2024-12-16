@@ -4,22 +4,22 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Singleton
 public class BookPublishRequestManager {
-    private final Queue<BookPublishRequest> bookPublishRequests;
+    Queue<BookPublishRequest> queue;
 
     @Inject
-    public BookPublishRequestManager(Queue<BookPublishRequest> queue) {
-        this.bookPublishRequests = queue;
+    public BookPublishRequestManager() {
+        queue = new ConcurrentLinkedQueue<>();
     }
 
     public void addBookPublishRequest(BookPublishRequest request) {
-        this.bookPublishRequests.offer(request);
+        queue.offer(request);
     }
 
-    // poll will automatically return null if the queue is empty;
     public BookPublishRequest getBookPublishRequestToProcess() {
-        return this.bookPublishRequests.poll();
+        return queue.poll();
     }
 }

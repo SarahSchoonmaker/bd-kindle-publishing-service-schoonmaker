@@ -15,6 +15,7 @@ public class GetBookResponse {
         this.recommendations = recommendations;
     }
 
+
     public Book getBook() {
         return book;
     }

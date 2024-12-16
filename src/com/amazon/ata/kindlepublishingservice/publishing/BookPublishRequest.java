@@ -30,7 +30,7 @@ public final class BookPublishRequest {
     public String getBookId() {
         return bookId;
     }
-    
+
     public String getTitle() {
         return title;
     }

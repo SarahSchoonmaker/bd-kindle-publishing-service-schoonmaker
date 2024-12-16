@@ -1,5 +1,7 @@
 package com.amazon.ata.kindlepublishingservice.converters;
 
+import com.amazon.ata.kindlepublishingservice.dynamodb.models.PublishingStatusItem;
+import com.amazon.ata.kindlepublishingservice.models.PublishingStatusRecord;
 import com.amazon.ata.recommendationsservice.types.BookGenre;
 import com.amazon.ata.kindlepublishingservice.models.requests.SubmitBookForPublishingRequest;
 import com.amazon.ata.kindlepublishingservice.publishing.BookPublishRequest;
@@ -24,13 +26,21 @@ public class BookPublishRequestConverter {
         final String publishingRecordId = KindlePublishingUtils.generatePublishingRecordId();
 
         return BookPublishRequest.builder()
-            .withPublishingRecordId(publishingRecordId)
-            .withText(request.getText())
-            .withTitle(request.getTitle())
-            .withBookId(request.getBookId())
-            .withGenre(BookGenre.valueOf(request.getGenre()))
-            .withAuthor(request.getAuthor())
-            .build();
+                .withPublishingRecordId(publishingRecordId)
+                .withText(request.getText())
+                .withTitle(request.getTitle())
+                .withBookId(request.getBookId())
+                .withGenre(BookGenre.valueOf(request.getGenre()))
+                .withAuthor(request.getAuthor())
+                .build();
+    }
+
+    public static PublishingStatusRecord toPublishingStatusRecord(PublishingStatusItem item) {
+        return PublishingStatusRecord.builder()
+                .withBookId(item.getBookId())
+                .withStatus(item.getStatus().toString())
+                .withStatusMessage(item.getStatusMessage())
+                .build();
     }
 
 }

@@ -64,10 +64,10 @@ public class PublishingStatusDao {
         String statusMessage = KindlePublishingUtils.generatePublishingStatusMessage(publishingRecordStatus);
         if (StringUtils.isNotBlank(message)) {
             statusMessage = new StringBuffer()
-                .append(statusMessage)
-                .append(ADDITIONAL_NOTES_PREFIX)
-                .append(message)
-                .toString();
+                    .append(statusMessage)
+                    .append(ADDITIONAL_NOTES_PREFIX)
+                    .append(message)
+                    .toString();
         }
 
         PublishingStatusItem item = new PublishingStatusItem();
@@ -79,18 +79,19 @@ public class PublishingStatusDao {
         return item;
     }
 
-    public List<PublishingStatusItem> getPublishingStatuses(String publishingStatusId) {
+    public List<PublishingStatusItem> getPublishingStatus(String id) {
         PublishingStatusItem item = new PublishingStatusItem();
-        item.setPublishingRecordId(publishingStatusId);
+        item.setPublishingRecordId(id);
 
-        DynamoDBQueryExpression<PublishingStatusItem> queryExpression =
-                new DynamoDBQueryExpression<PublishingStatusItem>()
-                        .withHashKeyValues(item);
+        DynamoDBQueryExpression<PublishingStatusItem> expression = new DynamoDBQueryExpression<PublishingStatusItem>()
+                .withHashKeyValues(item);
 
-        PaginatedQueryList<PublishingStatusItem> itemList = dynamoDbMapper.query(PublishingStatusItem.class, queryExpression);
-        if (itemList.isEmpty()) {
-            throw new PublishingStatusNotFoundException(String.format("No publishing status(es) found for id: %s", publishingStatusId));
+        PaginatedQueryList<PublishingStatusItem> list = dynamoDbMapper.query(PublishingStatusItem.class, expression);
+
+        if (list.size() == 0) {
+            throw new PublishingStatusNotFoundException("publishing status not found");
         }
-        return dynamoDbMapper.query(PublishingStatusItem.class, queryExpression);
+
+        return list;
     }
 }

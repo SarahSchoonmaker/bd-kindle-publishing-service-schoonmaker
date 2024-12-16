@@ -3,7 +3,10 @@ package com.amazon.ata.kindlepublishingservice.models.requests;
 import java.util.Objects;
 
 public class GetPublishingStatusRequest {
+
+
     private String publishingRecordId;
+
 
     public GetPublishingStatusRequest(String publishingRecordId) {
         this.publishingRecordId = publishingRecordId;

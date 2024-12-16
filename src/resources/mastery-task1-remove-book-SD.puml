@@ -1,68 +1,23 @@
-PARTICIPANTS: use this file for creating the remove book from catalog diagram in mastery task 01
 @startuml
-title RemoveBookFromCatalog
+title Remove Book
 
 actor Client
-participant "API GATEWAY/Lambda"
-participant RemoveBookFromCatalogActivity
 participant CatalogDao
-database DynamoDB
+participant CatalogItemVersions
+participant removeBookFromCatalog
+participant RemoveBookFromCatalogActivity
+participant RemoveBookFromCatalogResponse
 
-activate "API GATEWAY/Lambda"
-Client -> "API GATEWAY/Lambda"
-activate RemoveBookFromCatalogActivity
-"API GATEWAY/Lambda" -> RemoveBookFromCatalogActivity: execute (RemoveBookFromCatalogRequest removeBookFromCatalogRequest)
-activate CatalogDao
-RemoveBookFromCatalogActivity -> CatalogDao: removeBookFromCatalog (bookId)
-activate DynamoDB
-CatalogDao -> DynamoDB: look up by book Id
-
-alt if book ID does not exist
-    CatalogDao <-- DynamoDB : returns null
-    RemoveBookFromCatalogActivity<-- CatalogDao : throw BookNotFoundException
-    "API GATEWAY/Lambda" <-- RemoveBookFromCatalogActivity: Propagates BookNotFoundException
-    Client <-- "API GATEWAY/Lambda" : 404 Response
-else else, continue
+alt if book is removed or not
+CatalogDao -> CatalogItemVersions : Inactive Status : False
+CatalogItemVersions -> removeBookFromCatalog
+Client <-- RemoveBookFromCatalogResponse
+removeBookFromCatalog -> RemoveBookFromCatalogActivity : execute(RemoveBookFromCatalogRequest)
+else otherwise, BookIdNotFound
+CatalogDao -> CatalogItemVersions : Inactive Status : True
+Client <-- CatalogItemVersions : BookNotFoundException
 end
-
-CatalogDao <-- DynamoDB: returns book data
-alt if book is active
-CatalogDao --> DynamoDB: mark book inactive
-else else, continue
-end
-
-deactivate DynamoDB
-RemoveBookFromCatalogActivity <-- CatalogDao: returns book
-deactivate CatalogDao
-"API GATEWAY/Lambda" <-- RemoveBookFromCatalogActivity: RemoveBookFromCatalogResponse
-deactivate RemoveBookFromCatalogActivity
-Client <-- "API GATEWAY/Lambda": RemoveBookFromCatalogResponse
-deactivate "API GATEWAY/Lambda"
 
 
 
 @enduml
-
-
-
-'alt if playlist ID does not exist
-'    PlaylistDao <-- DynamoDB : null
-'    Lambda <-- PlaylistDao : throw PlaylistNotFoundException
-'    APIGateway <-- Lambda
-'    Client <-- APIGateway : 404 Response
-'else otherwise, continue
-'end
-
-'PlaylistDao <-- DynamoDB : Playlist
-'GetPlaylistActivity <-- PlaylistDao : Playlist
-'GetPlaylistActivity -> ModelConverter : toPlaylistModel(Playlist)
-'activate ModelConverter
-'GetPlaylistActivity <-- ModelConverter : PlaylistModel
-'deactivate ModelConverter
-'Lambda <-- GetPlaylistActivity : GetPlaylistResult
-'APIGateway <-- Lambda
-'deactivate PlaylistDao
-'deactivate GetPlaylistActivity
-'deactivate Lambda
-'Client <-- APIGateway : 200 Response
-'deactivate Client
